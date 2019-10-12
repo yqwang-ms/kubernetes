@@ -779,6 +779,7 @@ func (p *PriorityQueue) newPodInfo(pod *v1.Pod) *podInfo {
 		}
 	}
 
+	klog.Infof("newPodInfo: %v: %v", pod.Name, p.clock.Now())
 	return &podInfo{
 		pod:       pod,
 		timestamp: p.clock.Now(),
