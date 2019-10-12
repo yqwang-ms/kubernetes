@@ -282,8 +282,9 @@ func activeQComp(podInfo1, podInfo2 interface{}) bool {
 	pInfo2 := podInfo2.(*podInfo)
 	prio1 := util.GetPodPriority(pInfo1.pod)
 	prio2 := util.GetPodPriority(pInfo2.pod)
-	return (prio1 > prio2) || (prio1 == prio2 && pInfo1.timestamp.Before(pInfo2.timestamp))
-}
+	ctime1 := pInfo1.pod.CreationTimestamp.Time
+	ctime2 := pInfo2.pod.CreationTimestamp.Time
+	return (prio1 > prio2) || (prio1 == prio2 && ctime1.Before(ctime2))}
 
 // NewPriorityQueue creates a PriorityQueue object.
 func NewPriorityQueue(stop <-chan struct{}) *PriorityQueue {
