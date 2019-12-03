@@ -295,7 +295,7 @@ func NewPriorityQueueWithClock(stop <-chan struct{}, clock util.Clock) *Priority
 	pq := &PriorityQueue{
 		clock:            clock,
 		stop:             stop,
-		podBackoff:       util.CreatePodBackoffWithClock(1*time.Second, 1*time.Second, clock),
+		podBackoff:       util.CreatePodBackoffWithClock(1*time.Second, 10*time.Second, clock),
 		activeQ:          util.NewHeap(podInfoKeyFunc, activeQComp),
 		unschedulableQ:   newUnschedulablePodsMap(clock),
 		nominatedPods:    newNominatedPodMap(),
