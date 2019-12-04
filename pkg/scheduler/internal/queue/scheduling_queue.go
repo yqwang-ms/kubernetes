@@ -403,7 +403,7 @@ func (p *PriorityQueue) backoffPod(pod *v1.Pod) {
 	podID := nsNameForPod(pod)
 	boTime, found := p.podBackoff.GetBackoffTime(podID)
 	if !found || boTime.Before(p.clock.Now()) {
-		klog.Infof("BOTEST: backoffPod p.podBackoff.BackoffPod %v/%v", pod.Namespace, pod.Name)
+		klog.Infof("BOTEST: backoffPod p.podBackoff.BackoffPod found %v %v/%v", found, pod.Namespace, pod.Name)
 		p.podBackoff.BackoffPod(podID)
 	}
 }
@@ -440,7 +440,8 @@ func (p *PriorityQueue) AddUnschedulableIfNotPresent(pod *v1.Pod, podSchedulingC
 	// If a move request has been received, move it to the BackoffQ, otherwise move
 	// it to unschedulableQ.
 	if p.moveRequestCycle >= podSchedulingCycle {
-		klog.Infof("BOTEST: AddUnschedulableIfNotPresent p.podBackoffQ.Add %v/%v", pod.Namespace, pod.Name)
+		klog.Infof("BOTEST: AddUnschedulableIfNotPresent p.podBackoffQ.Add %v/%v %v/%v",
+			p.moveRequestCycle, podSchedulingCycle, pod.Namespace, pod.Name)
 		if err := p.podBackoffQ.Add(pInfo); err != nil {
 			// TODO: Delete this klog call and log returned errors at the call site.
 			err = fmt.Errorf("error adding pod %v to the backoff queue: %v", pod.Name, err)
@@ -469,7 +470,7 @@ func (p *PriorityQueue) flushBackoffQCompleted() {
 		pod := rawPodInfo.(*podInfo).pod
 		boTime, found := p.podBackoff.GetBackoffTime(nsNameForPod(pod))
 		if !found {
-			klog.Infof("BOTEST: flushBackoffQCompleted p.podBackoffQ.Pop %v/%v", pod.Namespace, pod.Name)
+			klog.Infof("BOTEST: flushBackoffQCompleted p.podBackoffQ.Pop found false %v/%v", pod.Namespace, pod.Name)
 			klog.Errorf("Unable to find backoff value for pod %v in backoffQ", nsNameForPod(pod))
 			p.podBackoffQ.Pop()
 			p.activeQ.Add(rawPodInfo)
@@ -481,7 +482,7 @@ func (p *PriorityQueue) flushBackoffQCompleted() {
 			return
 		}
 
-		klog.Infof("BOTEST: flushBackoffQCompleted p.podBackoffQ.Pop %v/%v", pod.Namespace, pod.Name)
+		klog.Infof("BOTEST: flushBackoffQCompleted p.podBackoffQ.Pop found true %v/%v", pod.Namespace, pod.Name)
 		_, err := p.podBackoffQ.Pop()
 		if err != nil {
 			klog.Errorf("Unable to pop pod %v from backoffQ despite backoff completion.", nsNameForPod(pod))
@@ -658,6 +659,7 @@ func (p *PriorityQueue) MoveAllToActiveQueue() {
 				klog.Errorf("Error adding pod %v to the backoff queue: %v", pod.Name, err)
 			}
 		} else {
+			klog.Infof("BOTEST: MoveAllToActiveQueue p.activeQ.Add %v/%v", pod.Namespace, pod.Name)
 			if err := p.activeQ.Add(pInfo); err != nil {
 				klog.Errorf("Error adding pod %v to the scheduling queue: %v", pod.Name, err)
 			}
@@ -678,6 +680,7 @@ func (p *PriorityQueue) movePodsToActiveQueue(podInfoList []*podInfo) {
 				klog.Errorf("Error adding pod %v to the backoff queue: %v", pod.Name, err)
 			}
 		} else {
+			klog.Infof("BOTEST: movePodsToActiveQueue p.activeQ.Add %v/%v", pod.Namespace, pod.Name)
 			if err := p.activeQ.Add(pInfo); err != nil {
 				klog.Errorf("Error adding pod %v to the scheduling queue: %v", pod.Name, err)
 			}
