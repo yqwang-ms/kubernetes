@@ -509,6 +509,7 @@ func (p *PriorityQueue) flushUnschedulableQLeftover() {
 	}
 
 	if len(podsToMove) > 0 {
+		klog.Infof("BOTEST: flushUnschedulableQLeftover count %v", len(podsToMove))
 		p.movePodsToActiveQueue(podsToMove)
 	}
 }
@@ -593,6 +594,7 @@ func (p *PriorityQueue) Update(oldPod, newPod *v1.Pod) error {
 		if isPodUpdated(oldPod, newPod) {
 			// If the pod is updated reset backoff
 			p.clearPodBackoff(newPod)
+			klog.Infof("BOTEST: Update p.unschedulableQ.delete %v/%v", newPod.Namespace, newPod.Name)
 			p.unschedulableQ.delete(usPodInfo.pod)
 			err := p.activeQ.Add(newPodInfo)
 			if err == nil {
@@ -632,6 +634,7 @@ func (p *PriorityQueue) Delete(pod *v1.Pod) error {
 // may make pending pods with matching affinity terms schedulable.
 func (p *PriorityQueue) AssignedPodAdded(pod *v1.Pod) {
 	p.lock.Lock()
+	klog.Infof("BOTEST: AssignedPodAdded")
 	p.movePodsToActiveQueue(p.getUnschedulablePodsWithMatchingAffinityTerm(pod))
 	p.lock.Unlock()
 }
@@ -640,6 +643,7 @@ func (p *PriorityQueue) AssignedPodAdded(pod *v1.Pod) {
 // may make pending pods with matching affinity terms schedulable.
 func (p *PriorityQueue) AssignedPodUpdated(pod *v1.Pod) {
 	p.lock.Lock()
+	klog.Infof("BOTEST: AssignedPodUpdated")
 	p.movePodsToActiveQueue(p.getUnschedulablePodsWithMatchingAffinityTerm(pod))
 	p.lock.Unlock()
 }

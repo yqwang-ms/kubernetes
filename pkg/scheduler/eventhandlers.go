@@ -38,6 +38,7 @@ func (sched *Scheduler) onPvAdd(obj interface{}) {
 	// provisioning and binding process, will not trigger events to schedule pod
 	// again. So we need to move pods to active queue on PV add for this
 	// scenario.
+	klog.Infof("BOTEST: onPvAdd %v", obj)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
@@ -46,14 +47,17 @@ func (sched *Scheduler) onPvUpdate(old, new interface{}) {
 	// bindings due to conflicts if PVs are updated by PV controller or other
 	// parties, then scheduler will add pod back to unschedulable queue. We
 	// need to move pods to active queue on PV update for this scenario.
+	klog.Infof("BOTEST: onPvUpdate %v", new)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
 func (sched *Scheduler) onPvcAdd(obj interface{}) {
+	klog.Infof("BOTEST: onPvcAdd %v", obj)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
 func (sched *Scheduler) onPvcUpdate(old, new interface{}) {
+	klog.Infof("BOTEST: onPvcUpdate %v", new)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
@@ -71,19 +75,23 @@ func (sched *Scheduler) onStorageClassAdd(obj interface{}) {
 	// We don't need to invalidate cached results because results will not be
 	// cached for pod that has unbound immediate PVCs.
 	if sc.VolumeBindingMode != nil && *sc.VolumeBindingMode == storagev1.VolumeBindingWaitForFirstConsumer {
+		klog.Infof("BOTEST: onStorageClassAdd %v/%v", sc.Namespace, sc.Name)
 		sched.config.SchedulingQueue.MoveAllToActiveQueue()
 	}
 }
 
 func (sched *Scheduler) onServiceAdd(obj interface{}) {
+	klog.Infof("BOTEST: onServiceAdd %v", obj)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
 func (sched *Scheduler) onServiceUpdate(oldObj interface{}, newObj interface{}) {
+	klog.Infof("BOTEST: onServiceUpdate %v", newObj)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
 func (sched *Scheduler) onServiceDelete(obj interface{}) {
+	klog.Infof("BOTEST: onServiceDelete %v", obj)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
@@ -98,6 +106,7 @@ func (sched *Scheduler) addNodeToCache(obj interface{}) {
 		klog.Errorf("scheduler cache AddNode failed: %v", err)
 	}
 
+	klog.Infof("BOTEST: addNodeToCache %v", node.Name)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
@@ -123,6 +132,15 @@ func (sched *Scheduler) updateNodeInCache(oldObj, newObj interface{}) {
 	// that a pod being processed by the scheduler is determined unschedulable. We want this
 	// pod to be reevaluated when a change in the cluster happens.
 	if sched.config.SchedulingQueue.NumUnschedulablePods() == 0 || nodeSchedulingPropertiesChanged(newNode, oldNode) {
+		klog.Infof("BOTEST: updateNodeInCache %v, %v, " +
+			"%v, %v, %v, %v, %v",
+			oldNode.Name, sched.config.SchedulingQueue.NumUnschedulablePods(),
+			nodeSpecUnschedulableChanged(newNode, oldNode),
+			nodeAllocatableChanged(newNode, oldNode),
+			nodeLabelsChanged(newNode, oldNode),
+			nodeTaintsChanged(newNode, oldNode),
+			nodeConditionsChanged(newNode, oldNode))
+
 		sched.config.SchedulingQueue.MoveAllToActiveQueue()
 	}
 }
@@ -256,6 +274,7 @@ func (sched *Scheduler) deletePodFromCache(obj interface{}) {
 		klog.Errorf("scheduler cache RemovePod failed: %v", err)
 	}
 
+	klog.Infof("BOTEST: deletePodFromCache %v/%v", pod.Namespace, pod.Name)
 	sched.config.SchedulingQueue.MoveAllToActiveQueue()
 }
 
