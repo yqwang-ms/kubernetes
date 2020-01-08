@@ -39,10 +39,14 @@ func withPanicRecovery(handler http.Handler, crashHandler func(http.ResponseWrit
 			crashHandler(w, req, err)
 		})
 
-		logger := httplog.NewLogged(req, &w)
+		logger := httplog.NewLogged(req, &w).StacktraceWhen(allStacktracePred)
 		defer logger.Log()
 
 		// Dispatch to the internal handler
 		handler.ServeHTTP(w, req)
 	})
+}
+
+func allStacktracePred(status int) bool {
+	return true
 }
