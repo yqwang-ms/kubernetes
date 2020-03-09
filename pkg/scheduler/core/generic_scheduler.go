@@ -18,6 +18,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
@@ -156,6 +157,18 @@ func (g *genericScheduler) snapshot() error {
 	return g.cache.UpdateNodeInfoSnapshot(&g.nodeInfoSnapshot)
 }
 
+func ToJson(obj interface{}) string {
+	return string(ToJsonBytes(obj))
+}
+
+func ToJsonBytes(obj interface{}) []byte {
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		panic(fmt.Errorf("Failed to marshal Object %#v to JSON: %v", obj, err))
+	}
+	return jsonBytes
+}
+
 // Schedule tries to schedule the given pod to one of the nodes in the node list.
 // If it succeeds, it will return the name of the node.
 // If it fails, it will return a FitError error with reasons.
@@ -184,6 +197,20 @@ func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister
 	filteredNodes, failedPredicateMap, err := g.findNodesThatFit(pod, nodes)
 	if err != nil {
 		return result, err
+	}
+
+	for nodeName, reasons := range failedPredicateMap {
+		for _, reason := range reasons {
+			ires := ""
+			if ire, ok := reason.(*predicates.InsufficientResourceError); ok {
+				ires = fmt.Sprintf(
+					"ResourceName: %v, InsufficientAmount: %v, Error: %v",
+					ire.ResourceName, ire.GetInsufficientAmount(), ire.Error())
+			}
+			klog.V(5).Infof(
+				"[SNODED]: failedPredicateMap: Pod [%v/%v], Node [%v], Reason [%v], IRE [%v], All [%v]",
+				pod.Namespace, pod.Name, nodeName, reason.GetReason(), ires, ToJson(reason))
+		}
 	}
 
 	if len(filteredNodes) == 0 {
