@@ -582,7 +582,9 @@ func addNominatedPods(pod *v1.Pod, meta predicates.PredicateMetadata,
 			}
 		}
 	}
-	return true, metaOut, nodeInfoOut
+
+	klog.V(5).Infof("[SNODED]: Ignore Nominated")
+	return false, meta, nodeInfo
 }
 
 // podFitsOnNode checks whether a node given by NodeInfo satisfies the given predicate functions.
