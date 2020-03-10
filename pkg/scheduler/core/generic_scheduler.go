@@ -561,28 +561,6 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 func addNominatedPods(pod *v1.Pod, meta predicates.PredicateMetadata,
 	nodeInfo *schedulernodeinfo.NodeInfo, queue internalqueue.SchedulingQueue) (bool, predicates.PredicateMetadata,
 	*schedulernodeinfo.NodeInfo) {
-	if queue == nil || nodeInfo == nil || nodeInfo.Node() == nil {
-		// This may happen only in tests.
-		return false, meta, nodeInfo
-	}
-	nominatedPods := queue.NominatedPodsForNode(nodeInfo.Node().Name)
-	if nominatedPods == nil || len(nominatedPods) == 0 {
-		return false, meta, nodeInfo
-	}
-	var metaOut predicates.PredicateMetadata
-	if meta != nil {
-		metaOut = meta.ShallowCopy()
-	}
-	nodeInfoOut := nodeInfo.Clone()
-	for _, p := range nominatedPods {
-		if util.GetPodPriority(p) >= util.GetPodPriority(pod) && p.UID != pod.UID {
-			nodeInfoOut.AddPod(p)
-			if metaOut != nil {
-				metaOut.AddPod(p, nodeInfoOut)
-			}
-		}
-	}
-
 	klog.V(5).Infof("[SNODED]: Ignore Nominated")
 	return false, meta, nodeInfo
 }
