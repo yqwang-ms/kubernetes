@@ -351,32 +351,29 @@ func (g *genericScheduler) processPreemptionWithExtenders(
 	pod *v1.Pod,
 	nodeToVictims map[*v1.Node]*schedulerapi.Victims,
 ) (map[*v1.Node]*schedulerapi.Victims, error) {
-	if len(nodeToVictims) > 0 {
-		for _, extender := range g.extenders {
-			if extender.SupportsPreemption() && extender.IsInterested(pod) {
-				newNodeToVictims, err := extender.ProcessPreemption(
-					pod,
-					nodeToVictims,
-					g.nodeInfoSnapshot.NodeInfoMap,
-				)
-				if err != nil {
-					if extender.IsIgnorable() {
-						klog.Warningf("Skipping extender %v as it returned error %v and has ignorable flag set",
-							extender, err)
-						continue
-					}
-					return nil, err
-				}
+	if len(nodeToVictims) == 0 {
+		klog.Warningf("[ALFT]: No nodeToVictims")
+	}
 
-				// Replace nodeToVictims with new result after preemption. So the
-				// rest of extenders can continue use it as parameter.
-				nodeToVictims = newNodeToVictims
-
-				// If node list becomes empty, no preemption can happen regardless of other extenders.
-				if len(nodeToVictims) == 0 {
-					break
+	for _, extender := range g.extenders {
+		if extender.SupportsPreemption() && extender.IsInterested(pod) {
+			newNodeToVictims, err := extender.ProcessPreemption(
+				pod,
+				nodeToVictims,
+				g.nodeInfoSnapshot.NodeInfoMap,
+			)
+			if err != nil {
+				if extender.IsIgnorable() {
+					klog.Warningf("Skipping extender %v as it returned error %v and has ignorable flag set",
+						extender, err)
+					continue
 				}
+				return nil, err
 			}
+
+			// Replace nodeToVictims with new result after preemption. So the
+			// rest of extenders can continue use it as parameter.
+			nodeToVictims = newNodeToVictims
 		}
 	}
 
@@ -497,33 +494,36 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 		}
 	}
 
-	if len(filtered) > 0 && len(g.extenders) != 0 {
-		for _, extender := range g.extenders {
-			if !extender.IsInterested(pod) {
-				continue
-			}
-			filteredList, failedMap, err := extender.Filter(pod, filtered, g.nodeInfoSnapshot.NodeInfoMap)
-			if err != nil {
-				if extender.IsIgnorable() {
-					klog.Warningf("Skipping extender %v as it returned error %v and has ignorable flag set",
-						extender, err)
-					continue
-				} else {
-					return []*v1.Node{}, FailedPredicateMap{}, err
-				}
-			}
+	if len(filtered) == 0 {
+		klog.Warningf("[ALFT]: No filtered")
+	}
 
-			for failedNodeName, failedMsg := range failedMap {
-				if _, found := failedPredicateMap[failedNodeName]; !found {
-					failedPredicateMap[failedNodeName] = []predicates.PredicateFailureReason{}
-				}
-				failedPredicateMap[failedNodeName] = append(failedPredicateMap[failedNodeName], predicates.NewFailureReason(failedMsg))
-			}
-			filtered = filteredList
-			if len(filtered) == 0 {
-				break
+	if len(g.extenders) == 0 {
+		klog.Warningf("[ALFT]: No extenders")
+	}
+
+	for _, extender := range g.extenders {
+		if !extender.IsInterested(pod) {
+			continue
+		}
+		filteredList, failedMap, err := extender.Filter(pod, filtered, g.nodeInfoSnapshot.NodeInfoMap)
+		if err != nil {
+			if extender.IsIgnorable() {
+				klog.Warningf("Skipping extender %v as it returned error %v and has ignorable flag set",
+					extender, err)
+				continue
+			} else {
+				return []*v1.Node{}, FailedPredicateMap{}, err
 			}
 		}
+
+		for failedNodeName, failedMsg := range failedMap {
+			if _, found := failedPredicateMap[failedNodeName]; !found {
+				failedPredicateMap[failedNodeName] = []predicates.PredicateFailureReason{}
+			}
+			failedPredicateMap[failedNodeName] = append(failedPredicateMap[failedNodeName], predicates.NewFailureReason(failedMsg))
+		}
+		filtered = filteredList
 	}
 	return filtered, failedPredicateMap, nil
 }
